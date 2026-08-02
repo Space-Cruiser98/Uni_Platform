@@ -10,6 +10,9 @@ RUN dotnet publish "./ComponentsOrderApi.csproj" -c Release -o /app/publish /p:U
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 
+# Use polling file watcher inside containers to avoid inotify limits on some hosts
+ENV DOTNET_USE_POLLING_FILE_WATCHER=1
+
 ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 10000
 
