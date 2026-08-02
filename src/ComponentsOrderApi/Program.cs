@@ -39,6 +39,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             NameClaimType = "sub",
             RoleClaimType = "role"
         };
+
+        // Add logging hooks to see why token validation/authentication may fail in production.
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = ctx =>
+            {
+                var loggerFactory = ctx.HttpContext.RequestServices.GetService<ILoggerFactory>();
+                var logger = loggerFactory?.CreateLogger("JwtBearerEvents");
+                logger?.LogError(ctx.Exception, "JWT authentication failed");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = ctx =>
+            {
+                var loggerFactory = ctx.HttpContext.RequestServices.GetService<ILoggerFactory>();
+                var logger = loggerFactory?.CreateLogger("JwtBearerEvents");
+                var sub = ctx.Principal?.FindFirst("sub")?.Value ?? ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                logger?.LogInformation("JWT token validated for sub={sub}", sub);
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
