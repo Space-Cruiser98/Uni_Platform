@@ -94,8 +94,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+// Register JwtUserMiddleware to populate HttpContext.User from a Bearer token when present.
+app.UseMiddleware<JwtUserMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Health endpoint (simple liveness check)
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 app.Run();
