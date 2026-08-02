@@ -56,6 +56,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var logger = loggerFactory?.CreateLogger("JwtBearerEvents");
                 var sub = ctx.Principal?.FindFirst("sub")?.Value ?? ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 logger?.LogInformation("JWT token validated for sub={sub}", sub);
+
+                // Ensure the principal has a ClaimTypes.Role claim so Authorize(Roles=...) works reliably
+                var identity = ctx.Principal?.Identity as System.Security.Claims.ClaimsIdentity;
+                if (identity != null)
+                {
+                    var roleClaim = identity.FindFirst("role")?.Value;
+                    if (!string.IsNullOrEmpty(roleClaim) && !identity.HasClaim(c => c.Type == System.Security.Claims.ClaimTypes.Role))
+                    {
+                        identity.AddClaim(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, roleClaim));
+                    }
+                }
+
                 return Task.CompletedTask;
             }
         };
@@ -114,9 +126,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
-// Register JwtUserMiddleware to populate HttpContext.User from a Bearer token when present.
-app.UseMiddleware<JwtUserMiddleware>();
 app.UseAuthentication();
+// Run JwtUserMiddleware after UseAuthentication so we don't overwrite the principal created by JwtBearer
+app.UseMiddleware<JwtUserMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 
