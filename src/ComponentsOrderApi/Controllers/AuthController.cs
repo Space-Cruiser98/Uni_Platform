@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ComponentsOrderApi.DTOs;
 using ComponentsOrderApi.Services;
@@ -24,6 +25,7 @@ public class AuthController : ControllerBase
         var result = await _auth.RegisterAsync(request, ct);
         if (result == null)
             return BadRequest("Email already registered.");
+
         return Ok(result);
     }
 
@@ -33,14 +35,15 @@ public class AuthController : ControllerBase
         var result = await _auth.LoginAsync(request, ct);
         if (result == null)
             return Unauthorized("Invalid email or password.");
+
         return Ok(result);
     }
 
+    [Authorize]
     [HttpGet("me")]
     public IActionResult Me()
     {
-        var bearer = Request.Headers.Authorization.ToString();
-        var user = _auth.GetUserFromToken(bearer) ?? _auth.GetUserFromClaims(User);
+        var user = _auth.GetUserFromClaims(User);
         if (user == null) return Unauthorized();
         return Ok(user);
     }

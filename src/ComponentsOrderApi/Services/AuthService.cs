@@ -33,6 +33,7 @@ public class AuthService : IAuthService
             Role = "Student",
             CreatedAt = DateTime.UtcNow
         };
+
         _db.Users.Add(user);
         await _db.SaveChangesAsync(ct);
 
@@ -67,38 +68,58 @@ public class AuthService : IAuthService
     {
         if (string.IsNullOrWhiteSpace(bearerToken) || !bearerToken.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             return null;
-        var token = bearerToken["Bearer ".Length..].Trim();
-        if (string.IsNullOrEmpty(token)) return null;
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"] ?? ""));
-        var validator = new JwtSecurityTokenHandler();
+        var token = bearerToken["Bearer ".Length..].Trim();
+        if (string.IsNullOrEmpty(token))
+            return null;
+
+        var principal = ValidateToken(token);
+        if (principal == null)
+            return null;
+
+        var userDto = GetUserFromClaims(principal);
+        if (userDto != null)
+            return userDto;
+
+        var sub = principal.FindFirst("sub")?.Value ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!string.IsNullOrEmpty(sub) && int.TryParse(sub, out var userId))
+        {
+            var user = _db.Users.AsNoTracking().FirstOrDefault(u => u.Id == userId);
+            return user == null ? null : ToUserDto(user);
+        }
+
+        return null;
+    }
+
+    private ClaimsPrincipal? ValidateToken(string token)
+    {
+        var jwtKey = _config["Jwt:Key"];
+        if (string.IsNullOrWhiteSpace(jwtKey))
+            return null;
+
+        var handler = new JwtSecurityTokenHandler();
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+
         try
         {
-            var jwt = validator.ReadJwtToken(token);
-            var sub = jwt.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
-            if (!string.IsNullOrEmpty(sub) && int.TryParse(sub, out var userId))
-            {
-                var user = _db.Users.AsNoTracking().FirstOrDefault(u => u.Id == userId);
-                return user == null ? null : ToUserDto(user);
-            }
-            var principal = validator.ValidateToken(token, new TokenValidationParameters
+            var principal = handler.ValidateToken(token, new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = key,
-                ValidateIssuer = false,
-                ValidateAudience = false,
+                ValidateIssuer = true,
+                ValidIssuer = _config["Jwt:Issuer"],
+                ValidateAudience = true,
+                ValidAudience = _config["Jwt:Audience"],
                 ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
-            }, out _);
-            var userDto = GetUserFromClaims(principal);
-            if (userDto != null) return userDto;
-            sub = principal.FindFirst("sub")?.Value ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(sub) && int.TryParse(sub, out userId))
-            {
-                var user = _db.Users.AsNoTracking().FirstOrDefault(u => u.Id == userId);
-                return user == null ? null : ToUserDto(user);
-            }
-            return null;
+                ClockSkew = TimeSpan.Zero,
+                NameClaimType = "sub",
+                RoleClaimType = "role"
+            }, out var validatedToken);
+
+            if (validatedToken is not JwtSecurityToken jwt || !jwt.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            return principal;
         }
         catch
         {
@@ -111,7 +132,6 @@ public class AuthService : IAuthService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key not set")));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var expires = DateTime.UtcNow.AddMinutes(60);
-
         var claims = new[]
         {
             new Claim("sub", user.Id.ToString()),
