@@ -44,7 +44,8 @@ export default function CreateOrder() {
     }
     setLoading(true);
     try {
-      const order = await ordersApi.create(payload);
+      // Server expects an object with a 'Lines' property (CreateOrderRequest). Wrap the array accordingly.
+      const order = await ordersApi.create({ lines: payload });
       navigate(`/orders/${order.id}`, { replace: true });
     } catch (err) {
       setError(err.message || 'Failed to create order');
