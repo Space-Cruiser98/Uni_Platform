@@ -1,0 +1,123 @@
+.top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.top h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.filter {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.newBtn {
+  padding: 0.5rem 1rem;
+  background: #2563eb;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.newBtn:hover {
+  background: #1d4ed8;
+}
+
+.error {
+  padding: 0.75rem;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.loading {
+  color: #64748b;
+  padding: 1rem 0;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.empty {
+  text-align: center;
+  color: #64748b;
+  padding: 2rem;
+}
+
+.email {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.status_submitted {
+  color: #d97706;
+  font-weight: 500;
+}
+
+.status_approved {
+  color: #059669;
+  font-weight: 500;
+}
+
+.status_rejected {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.status_done {
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.link {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .tableWrap {
+    font-size: 0.9rem;
+  }
+  .table th,
+  .table td {
+    padding: 0.5rem;
+  }
+}

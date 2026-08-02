@@ -1,0 +1,103 @@
+.form {
+  max-width: 700px;
+}
+
+.error {
+  padding: 0.75rem;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: 2fr 80px 2fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.line input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.addBtn {
+  padding: 0.5rem 1rem;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+.addBtn:hover {
+  background: #cbd5e1;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.actions button[type='submit'] {
+  padding: 0.6rem 1.25rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.actions button[type='submit']:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.actions button[type='submit']:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.cancel {
+  padding: 0.6rem 1.25rem;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.removeBtn {
+  padding: 0.4rem 0.75rem;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.removeBtn:hover {
+  background: #fee2e2;
+}
+
+@media (max-width: 640px) {
+  .line {
+    grid-template-columns: 1fr 1fr;
+  }
+  .line .removeBtn {
+    grid-column: span 2;
+  }
+}
