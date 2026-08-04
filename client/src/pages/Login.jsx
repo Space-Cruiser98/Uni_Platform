@@ -28,7 +28,8 @@ export default function Login() {
 
   return (
     <div className={styles.container}>
-      <h1>Components Order</h1>
+      <img src="/logo.svg" alt="ENISO logo" className={styles.logo} />
+      <h1 className={styles.title}>ENISO Components Order</h1>
       <h2>Sign in</h2>
       <form onSubmit={handleSubmit} className={styles.form}>
         {error && <div className={styles.error}>{error}</div>}
