@@ -49,5 +49,10 @@ export const orders = {
   get: (id) => api(`/api/orders/${id}`),
   create: (payload) => api('/api/orders', { method: 'POST', body: JSON.stringify(payload) }),
   // Accept an optional reason parameter for rejection/approval requests and include it in the body
-  updateStatus: (id, status, reason = null) => api(`/api/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, reason }) }),
+  // Map string status names to numeric enum values expected by the backend
+  updateStatus: (id, status, reason = null) => {
+    const enumMap = { Submitted: 0, Approved: 1, Rejected: 2, Done: 3 };
+    const statusValue = typeof status === 'string' ? (enumMap[status] ?? status) : status;
+    return api(`/api/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: statusValue, reason }) });
+  },
 };
