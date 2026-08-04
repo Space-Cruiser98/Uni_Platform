@@ -28,7 +28,7 @@ export default function Login() {
 
   return (
     <div className={styles.container}>
-      <img src="/logo.svg" alt="ENISO logo" className={styles.logo} />
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Logo_ENISo%2C_Tunisie.svg/960px-Logo_ENISo%2C_Tunisie.svg.png" alt="ENISO logo" className={styles.logo} />
       <h1 className={styles.title}>ENISO Components Order</h1>
       <h2>Sign in</h2>
       <form onSubmit={handleSubmit} className={styles.form}>
