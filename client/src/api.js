@@ -48,5 +48,6 @@ export const orders = {
   list: (status) => api(`/api/orders${status ? `?status=${encodeURIComponent(status)}` : ''}`),
   get: (id) => api(`/api/orders/${id}`),
   create: (payload) => api('/api/orders', { method: 'POST', body: JSON.stringify(payload) }),
-  updateStatus: (id, status) => api(`/api/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  // Accept an optional reason parameter for rejection/approval requests and include it in the body
+  updateStatus: (id, status, reason = null) => api(`/api/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, reason }) }),
 };
