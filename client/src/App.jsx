@@ -6,6 +6,11 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateOrder from './pages/CreateOrder';
 import OrderDetail from './pages/OrderDetail';
+import VerifyEmail from './pages/VerifyEmail';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+
+
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -41,6 +46,11 @@ export default function App() {
             </PublicOnly>
           }
         />
+	<Route path="/verify-email" element={<VerifyEmail />} />
+
+<Route path="/forgot-password" element={<ForgotPassword />} />
+
+<Route path="/reset-password" element={<ResetPassword />} />
         <Route
           path="/"
           element={

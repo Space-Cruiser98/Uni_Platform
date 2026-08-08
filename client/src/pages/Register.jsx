@@ -8,16 +8,29 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+
   const { register } = useAuth();
 
   async function handleSubmit(e) {
     e.preventDefault();
+
     setError('');
+    setSuccess('');
     setLoading(true);
+
     try {
-      await register(email, password, name);
-      window.location.href = '/';
+      const result = await register(email, password, name);
+
+      setSuccess(
+        result.message ||
+        'Registration successful. Please check your email to verify your account.'
+      );
+
+      setEmail('');
+      setPassword('');
+      setName('');
     } catch (err) {
       setError(err.message || 'Registration failed');
     } finally {
@@ -25,12 +38,41 @@ export default function Register() {
     }
   }
 
+  if (success) {
+    return (
+      <div className={styles.container}>
+        <h1>Components Order</h1>
+        <h2>Check your email</h2>
+
+        <div className={styles.success}>
+          {success}
+        </div>
+
+        <p>
+          We sent a verification link to the email address
+          you provided.
+        </p>
+
+        <p>
+          After verifying your email, you can{' '}
+          <Link to="/login">sign in</Link>.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
       <h1>Components Order</h1>
       <h2>Register (student)</h2>
+
       <form onSubmit={handleSubmit} className={styles.form}>
-        {error && <div className={styles.error}>{error}</div>}
+        {error && (
+          <div className={styles.error}>
+            {error}
+          </div>
+        )}
+
         <input
           type="text"
           placeholder="Name"
@@ -39,6 +81,7 @@ export default function Register() {
           required
           autoComplete="name"
         />
+
         <input
           type="email"
           placeholder="Email"
@@ -47,6 +90,7 @@ export default function Register() {
           required
           autoComplete="email"
         />
+
         <input
           type="password"
           placeholder="Password"
@@ -54,13 +98,17 @@ export default function Register() {
           onChange={(e) => setPassword(e.target.value)}
           required
           autoComplete="new-password"
+          minLength={6}
         />
+
         <button type="submit" disabled={loading}>
           {loading ? 'Registering…' : 'Register'}
         </button>
       </form>
+
       <p>
-        Already have an account? <Link to="/login">Sign in</Link>
+        Already have an account?{' '}
+        <Link to="/login">Sign in</Link>
       </p>
     </div>
   );

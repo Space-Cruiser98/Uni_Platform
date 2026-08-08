@@ -124,3 +124,12 @@
   font-size: 0.88rem;
   color: var(--eniso-dark);
 }
+
+.success {
+  padding: 0.8rem;
+  background: #f0fdf4;
+  color: #166534;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}

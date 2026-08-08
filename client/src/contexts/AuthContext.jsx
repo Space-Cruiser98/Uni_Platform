@@ -12,14 +12,19 @@ export function AuthProvider({ children }) {
       return null;
     }
   });
-  const [loading, setLoading] = useState(!!localStorage.getItem('token'));
+
+  const [loading, setLoading] = useState(
+    !!localStorage.getItem('token')
+  );
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+
     if (!token) {
       setLoading(false);
       return;
     }
+
     authApi
       .me()
       .then((u) => {
@@ -36,18 +41,17 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const res = await authApi.login(email, password);
+
     localStorage.setItem('token', res.token);
     localStorage.setItem('user', JSON.stringify(res.user));
+
     setUser(res.user);
+
     return res.user;
   };
 
   const register = async (email, password, name) => {
-    const res = await authApi.register(email, password, name);
-    localStorage.setItem('token', res.token);
-    localStorage.setItem('user', JSON.stringify(res.user));
-    setUser(res.user);
-    return res.user;
+    return await authApi.register(email, password, name);
   };
 
   const logout = () => {
@@ -56,12 +60,28 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const value = { user, loading, login, register, logout, isAdmin: user?.role === 'Admin' };
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  const value = {
+    user,
+    loading,
+    login,
+    register,
+    logout,
+    isAdmin: user?.role === 'Admin',
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+
+  if (!ctx) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+
   return ctx;
 }
