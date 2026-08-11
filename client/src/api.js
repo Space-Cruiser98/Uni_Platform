@@ -2,6 +2,7 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
 function joinApiUrl(path) {
   if (!API_BASE) return path;
+
   return path.startsWith('/')
     ? `${API_BASE}${path}`
     : `${API_BASE}/${path}`;
@@ -116,59 +117,61 @@ export const orders = {
       body: JSON.stringify(payload),
     }),
 
-updateStatus: (id, status, data = {}) => {
-  const statusMap = {
-    Submitted: 0,
-    Approved: 1,
-    Rejected: 2,
-    Taken: 3,
-    Returned: 4,
-  };
+  updateStatus: (id, status, data = {}) => {
+    const statusMap = {
+      Submitted: 0,
+      Approved: 1,
+      Rejected: 2,
+      Taken: 3,
+      Returned: 4,
+    };
 
-  const approvalScopeMap = {
-    AllComponents: 0,
-    NotAllComponents: 1,
-  };
+    const approvalScopeMap = {
+      AllComponents: 0,
+      NotAllComponents: 1,
+    };
 
-  const rejectionReasonMap = {
-    UnavailableComponents: 0,
-    AlreadyLoaned: 1,
-  };
+    const rejectionReasonMap = {
+      UnavailableComponents: 0,
+      AlreadyLoaned: 1,
+    };
 
-  const returnConditionMap = {
-    AllComponentsReturned: 0,
-    MissingComponents: 1,
-    DamagedComponents: 2,
-  };
+    const returnConditionMap = {
+      AllComponentsReturned: 0,
+      MissingComponents: 1,
+      DamagedComponents: 2,
+    };
 
-  const payload = {
-    status:
-      typeof status === 'string'
-        ? statusMap[status]
-        : status,
-  };
+    const payload = {
+      status:
+        typeof status === 'string'
+          ? statusMap[status]
+          : status,
+    };
 
-  if (data.approvalScope) {
-    payload.approvalScope =
-      approvalScopeMap[data.approvalScope];
-  }
+    // IMPORTANT: use !== undefined because 0 is a valid enum value
+    if (data.approvalScope !== undefined) {
+      payload.approvalScope =
+        approvalScopeMap[data.approvalScope];
+    }
 
-  if (data.rejectionReason) {
-    payload.rejectionReason =
-      rejectionReasonMap[data.rejectionReason];
-  }
+    if (data.rejectionReason !== undefined) {
+      payload.rejectionReason =
+        rejectionReasonMap[data.rejectionReason];
+    }
 
-  if (data.returnCondition) {
-    payload.returnCondition =
-      returnConditionMap[data.returnCondition];
-  }
+    if (data.returnCondition !== undefined) {
+      payload.returnCondition =
+        returnConditionMap[data.returnCondition];
+    }
 
-  if (data.note !== undefined) {
-    payload.note = data.note;
-  }
+    if (data.note !== undefined) {
+      payload.note = data.note;
+    }
 
-  return api(`/api/orders/${id}/status`, {
-    method: 'PATCH',
-    body: JSON.stringify(payload),
-  });
-},
+    return api(`/api/orders/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+};
