@@ -5,5 +5,6 @@ public enum OrderStatus
     Submitted = 0,
     Approved = 1,
     Rejected = 2,
-    Done = 3
+    Taken = 3,
+    Returned = 4
 }

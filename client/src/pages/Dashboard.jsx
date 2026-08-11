@@ -44,7 +44,7 @@ export default function Dashboard() {
             <option value="Submitted">Submitted</option>
             <option value="Approved">Approved</option>
             <option value="Rejected">Rejected</option>
-            <option value="Done">Done</option>
+            <option value="Returned">Returned</option>
           </select>
         )}
         {!isAdmin && (

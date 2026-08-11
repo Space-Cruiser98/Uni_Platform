@@ -102,11 +102,12 @@ export const orders = {
 
   updateStatus: (id, status, reason = null) => {
     const enumMap = {
-      Submitted: 0,
-      Approved: 1,
-      Rejected: 2,
-      Done: 3,
-    };
+  Submitted: 0,
+  Approved: 1,
+  Rejected: 2,
+  Taken: 3,
+  Returned: 4,
+};
 
     const statusValue =
       typeof status === 'string'

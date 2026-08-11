@@ -14,14 +14,18 @@ public class OrderService : IOrderService
         _db = db;
     }
 
-    public async Task<OrderDto?> CreateOrderAsync(int studentId, CreateOrderRequest request, CancellationToken ct = default)
+    public async Task<OrderDto?> CreateOrderAsync(
+        int studentId,
+        CreateOrderRequest request,
+        CancellationToken ct = default)
     {
         if (request.Lines == null || request.Lines.Count == 0)
             return null;
 
         foreach (var line in request.Lines)
         {
-            if (string.IsNullOrWhiteSpace(line.ComponentName) || line.Quantity <= 0)
+            if (string.IsNullOrWhiteSpace(line.ComponentName) ||
+                line.Quantity <= 0)
                 return null;
         }
 
@@ -32,6 +36,7 @@ public class OrderService : IOrderService
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
+
         foreach (var line in request.Lines)
         {
             order.Lines.Add(new OrderLine
@@ -45,37 +50,61 @@ public class OrderService : IOrderService
         _db.Orders.Add(order);
         await _db.SaveChangesAsync(ct);
 
-        return await GetOrderByIdAsync(order.Id, studentId, false, ct);
+        return await GetOrderByIdAsync(
+            order.Id,
+            studentId,
+            false,
+            ct);
     }
 
-    public async Task<OrderDto?> GetOrderByIdAsync(int orderId, int? userId, bool isAdmin, CancellationToken ct = default)
+    public async Task<OrderDto?> GetOrderByIdAsync(
+        int orderId,
+        int? userId,
+        bool isAdmin,
+        CancellationToken ct = default)
     {
         var query = _db.Orders
             .Include(o => o.Student)
             .Include(o => o.ProcessedByUser)
             .Include(o => o.Lines)
-            .Include(o => o.StatusHistory).ThenInclude(h => h.ChangedByUser)
+            .Include(o => o.StatusHistory)
+                .ThenInclude(h => h.ChangedByUser)
             .AsNoTracking();
 
         if (!isAdmin && userId.HasValue)
             query = query.Where(o => o.StudentId == userId);
 
-        var order = await query.FirstOrDefaultAsync(o => o.Id == orderId, ct);
+        var order = await query
+            .FirstOrDefaultAsync(o => o.Id == orderId, ct);
+
         return order == null ? null : MapToDto(order);
     }
 
-    public async Task<IReadOnlyList<OrderListDto>> GetOrdersForStudentAsync(int studentId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<OrderListDto>>
+        GetOrdersForStudentAsync(
+            int studentId,
+            CancellationToken ct = default)
     {
         return await _db.Orders
             .AsNoTracking()
             .Where(o => o.StudentId == studentId)
             .Include(o => o.Student)
             .OrderByDescending(o => o.CreatedAt)
-            .Select(o => new OrderListDto(o.Id, o.StudentId, o.Student.Name, o.Student.Email, o.Status.ToString(), o.CreatedAt, o.UpdatedAt))
+            .Select(o => new OrderListDto(
+                o.Id,
+                o.StudentId,
+                o.Student.Name,
+                o.Student.Email,
+                o.Status.ToString(),
+                o.CreatedAt,
+                o.UpdatedAt))
             .ToListAsync(ct);
     }
 
-    public async Task<IReadOnlyList<OrderListDto>> GetOrdersForAdminAsync(OrderStatus? statusFilter, CancellationToken ct = default)
+    public async Task<IReadOnlyList<OrderListDto>>
+        GetOrdersForAdminAsync(
+            OrderStatus? statusFilter,
+            CancellationToken ct = default)
     {
         var query = _db.Orders
             .AsNoTracking()
@@ -84,61 +113,138 @@ public class OrderService : IOrderService
             .AsQueryable();
 
         if (statusFilter.HasValue)
-            query = query.Where(o => o.Status == statusFilter.Value);
+            query = query.Where(
+                o => o.Status == statusFilter.Value);
 
         return await query
-            .Select(o => new OrderListDto(o.Id, o.StudentId, o.Student.Name, o.Student.Email, o.Status.ToString(), o.CreatedAt, o.UpdatedAt))
+            .Select(o => new OrderListDto(
+                o.Id,
+                o.StudentId,
+                o.Student.Name,
+                o.Student.Email,
+                o.Status.ToString(),
+                o.CreatedAt,
+                o.UpdatedAt))
             .ToListAsync(ct);
     }
 
-    public async Task<OrderDto?> UpdateOrderStatusAsync(int orderId, int adminUserId, UpdateOrderStatusRequest request, CancellationToken ct = default)
+    public async Task<OrderDto?> UpdateOrderStatusAsync(
+        int orderId,
+        int adminUserId,
+        UpdateOrderStatusRequest request,
+        CancellationToken ct = default)
     {
         var order = await _db.Orders
             .Include(o => o.Student)
             .Include(o => o.Lines)
-            .Include(o => o.StatusHistory).ThenInclude(h => h.ChangedByUser)
-            .FirstOrDefaultAsync(o => o.Id == orderId, ct);
+            .Include(o => o.StatusHistory)
+                .ThenInclude(h => h.ChangedByUser)
+            .FirstOrDefaultAsync(
+                o => o.Id == orderId,
+                ct);
 
-        if (order == null) return null;
+        if (order == null)
+            return null;
 
         var fromStatus = order.Status;
         var toStatus = request.Status;
 
-        if (toStatus == OrderStatus.Approved || toStatus == OrderStatus.Rejected)
+        // SUBMITTED → APPROVED
+        // SUBMITTED → REJECTED
+        if (fromStatus == OrderStatus.Submitted)
         {
-            if (order.Status != OrderStatus.Submitted) return null;
-            order.RejectionReason = toStatus == OrderStatus.Rejected ? request.Reason : null;
+            if (toStatus != OrderStatus.Approved &&
+                toStatus != OrderStatus.Rejected)
+            {
+                return null;
+            }
+
+            if (toStatus == OrderStatus.Rejected)
+            {
+                order.RejectionReason = request.Reason;
+            }
+            else
+            {
+                order.RejectionReason = null;
+            }
         }
-        else if (toStatus == OrderStatus.Done)
+
+        // APPROVED → TAKEN
+        else if (fromStatus == OrderStatus.Approved)
         {
-            if (order.Status != OrderStatus.Approved) return null;
+            if (toStatus != OrderStatus.Taken)
+                return null;
+
+            order.RejectionReason = null;
         }
-        else
+
+        // TAKEN → RETURNED
+        else if (fromStatus == OrderStatus.Taken)
+        {
+            if (toStatus != OrderStatus.Returned)
+                return null;
+
+            order.RejectionReason = null;
+        }
+
+        // REJECTED and RETURNED are final states.
+        else if (fromStatus == OrderStatus.Rejected ||
+                 fromStatus == OrderStatus.Returned)
+        {
             return null;
+        }
+
+        else
+        {
+            return null;
+        }
 
         order.Status = toStatus;
         order.UpdatedAt = DateTime.UtcNow;
         order.ProcessedByUserId = adminUserId;
 
-        var note = toStatus == OrderStatus.Rejected && !string.IsNullOrEmpty(request.Reason) ? request.Reason : null;
-        await AddStatusHistoryAsync(order.Id, fromStatus, toStatus, adminUserId, note, ct);
+        var note =
+            toStatus == OrderStatus.Rejected &&
+            !string.IsNullOrWhiteSpace(request.Reason)
+                ? request.Reason
+                : null;
+
+        await AddStatusHistoryAsync(
+            order.Id,
+            fromStatus,
+            toStatus,
+            adminUserId,
+            note,
+            ct);
 
         await _db.SaveChangesAsync(ct);
 
-        return await GetOrderByIdAsync(order.Id, null, true, ct);
+        return await GetOrderByIdAsync(
+            order.Id,
+            null,
+            true,
+            ct);
     }
 
-    private async Task AddStatusHistoryAsync(int orderId, OrderStatus fromStatus, OrderStatus toStatus, int? userId, string? note, CancellationToken ct)
+    private async Task AddStatusHistoryAsync(
+        int orderId,
+        OrderStatus fromStatus,
+        OrderStatus toStatus,
+        int? userId,
+        string? note,
+        CancellationToken ct)
     {
-        _db.OrderStatusHistory.Add(new OrderStatusHistory
-        {
-            OrderId = orderId,
-            FromStatus = fromStatus,
-            ToStatus = toStatus,
-            ChangedAt = DateTime.UtcNow,
-            ChangedByUserId = userId,
-            Note = note
-        });
+        _db.OrderStatusHistory.Add(
+            new OrderStatusHistory
+            {
+                OrderId = orderId,
+                FromStatus = fromStatus,
+                ToStatus = toStatus,
+                ChangedAt = DateTime.UtcNow,
+                ChangedByUserId = userId,
+                Note = note
+            });
+
         await _db.SaveChangesAsync(ct);
     }
 
@@ -151,14 +257,22 @@ public class OrderService : IOrderService
         o.CreatedAt,
         o.UpdatedAt,
         o.RejectionReason,
-        o.Lines.Select(l => new OrderLineDto(l.Id, l.ComponentName, l.Quantity, l.Description)).ToList(),
-        o.StatusHistory.OrderBy(h => h.ChangedAt).Select(h => new OrderStatusHistoryDto(
-            h.Id,
-            h.FromStatus.ToString(),
-            h.ToStatus.ToString(),
-            h.ChangedAt,
-            h.ChangedByUser?.Name,
-            h.Note
-        )).ToList()
+        o.Lines
+            .Select(l => new OrderLineDto(
+                l.Id,
+                l.ComponentName,
+                l.Quantity,
+                l.Description))
+            .ToList(),
+        o.StatusHistory
+            .OrderBy(h => h.ChangedAt)
+            .Select(h => new OrderStatusHistoryDto(
+                h.Id,
+                h.FromStatus.ToString(),
+                h.ToStatus.ToString(),
+                h.ChangedAt,
+                h.ChangedByUser?.Name,
+                h.Note))
+            .ToList()
     );
 }
