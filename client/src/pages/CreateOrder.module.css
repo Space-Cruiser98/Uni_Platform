@@ -28,7 +28,11 @@
   font-weight: 600;
   color: #475569;
 
-  padding: 0 0.25rem;
+  padding: 0;
+}
+
+.lineHeader span:last-child {
+  text-align: left;
 }
 
 .line {
