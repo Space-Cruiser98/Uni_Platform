@@ -17,6 +17,20 @@
   margin-bottom: 1rem;
 }
 
+/* Column titles */
+.lineHeader {
+  display: grid;
+  grid-template-columns: 2fr 80px 2fr auto;
+  gap: 0.5rem;
+  align-items: center;
+
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+
+  padding: 0 0.25rem;
+}
+
 .line {
   display: grid;
   grid-template-columns: 2fr 80px 2fr auto;
@@ -94,9 +108,22 @@
 }
 
 @media (max-width: 640px) {
+  .lineHeader {
+    display: none;
+  }
+
   .line {
     grid-template-columns: 1fr 1fr;
   }
+
+  .line input:first-child {
+    grid-column: span 2;
+  }
+
+  .line input:nth-child(3) {
+    grid-column: span 2;
+  }
+
   .line .removeBtn {
     grid-column: span 2;
   }
