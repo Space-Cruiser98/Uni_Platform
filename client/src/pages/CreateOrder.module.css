@@ -23,11 +23,9 @@
   grid-template-columns: 2fr 80px 2fr auto;
   gap: 0.5rem;
   align-items: center;
-
   font-size: 0.85rem;
   font-weight: 600;
   color: #475569;
-
   padding: 0;
 }
 
