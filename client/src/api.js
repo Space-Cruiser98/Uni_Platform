@@ -116,12 +116,59 @@ export const orders = {
       body: JSON.stringify(payload),
     }),
 
-  updateStatus: (id, status, data = {}) =>
-    api(`/api/orders/${id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        status,
-        ...data,
-      }),
-    }),
-};
+updateStatus: (id, status, data = {}) => {
+  const statusMap = {
+    Submitted: 0,
+    Approved: 1,
+    Rejected: 2,
+    Taken: 3,
+    Returned: 4,
+  };
+
+  const approvalScopeMap = {
+    AllComponents: 0,
+    NotAllComponents: 1,
+  };
+
+  const rejectionReasonMap = {
+    UnavailableComponents: 0,
+    AlreadyLoaned: 1,
+  };
+
+  const returnConditionMap = {
+    AllComponentsReturned: 0,
+    MissingComponents: 1,
+    DamagedComponents: 2,
+  };
+
+  const payload = {
+    status:
+      typeof status === 'string'
+        ? statusMap[status]
+        : status,
+  };
+
+  if (data.approvalScope) {
+    payload.approvalScope =
+      approvalScopeMap[data.approvalScope];
+  }
+
+  if (data.rejectionReason) {
+    payload.rejectionReason =
+      rejectionReasonMap[data.rejectionReason];
+  }
+
+  if (data.returnCondition) {
+    payload.returnCondition =
+      returnConditionMap[data.returnCondition];
+  }
+
+  if (data.note !== undefined) {
+    payload.note = data.note;
+  }
+
+  return api(`/api/orders/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+},
