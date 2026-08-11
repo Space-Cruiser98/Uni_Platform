@@ -40,11 +40,12 @@ export default function Dashboard() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className={styles.filter}
           >
-            <option value="">All statuses</option>
-            <option value="Submitted">Submitted</option>
-            <option value="Approved">Approved</option>
-            <option value="Rejected">Rejected</option>
-            <option value="Returned">Returned</option>
+          <option value="">All statuses</option>
+          <option value="Submitted">Submitted</option>
+          <option value="Approved">Approved</option>
+          <option value="Rejected">Rejected</option>
+          <option value="Taken">Taken</option>
+          <option value="Returned">Returned</option>
           </select>
         )}
         {!isAdmin && (
