@@ -12,7 +12,20 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
+
+  // Approval
+  const [approvalScope, setApprovalScope] = useState('');
+
+  // Rejection
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectNote, setRejectNote] = useState('');
+
+  // Taken
+  const [takenNote, setTakenNote] = useState('');
+
+  // Returned
+  const [returnCondition, setReturnCondition] = useState('');
+  const [returnNote, setReturnNote] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -34,7 +47,7 @@ export default function OrderDetail() {
     };
   }, [id]);
 
-  async function handleStatus(newStatus, reason) {
+  async function handleStatus(newStatus, data = {}) {
     setActionLoading(true);
     setError('');
 
@@ -42,11 +55,18 @@ export default function OrderDetail() {
       const updated = await ordersApi.updateStatus(
         Number(id),
         newStatus,
-        reason
+        data
       );
 
       setOrder(updated);
-      setRejectReason('');
+
+      // Reset fields after successful update
+      setApprovalScope('');
+      setRejectionReason('');
+      setRejectNote('');
+      setTakenNote('');
+      setReturnCondition('');
+      setReturnNote('');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -66,7 +86,6 @@ export default function OrderDetail() {
     return null;
   }
 
-  // Technician/Admin actions
   const canApproveReject =
     isAdmin && order.status === 'Submitted';
 
@@ -182,74 +201,191 @@ export default function OrderDetail() {
               {h.changedByUserName &&
                 ` by ${h.changedByUserName}`}
 
+              {h.approvalScope &&
+                ` — Approval: ${formatApprovalScope(
+                  h.approvalScope
+                )}`}
+
+              {h.rejectionReason &&
+                ` — Reason: ${formatRejectionReason(
+                  h.rejectionReason
+                )}`}
+
+              {h.returnCondition &&
+                ` — Return: ${formatReturnCondition(
+                  h.returnCondition
+                )}`}
+
               {h.note &&
-                ` (${h.note})`}
+                ` — ${h.note}`}
             </li>
           ))}
         </ul>
       </section>
 
-      {/* SUBMITTED → APPROVED / REJECTED */}
-      {canApproveReject && (
-        <section className={styles.section}>
-          <h2>Actions</h2>
+      {/* =====================================================
+          SUBMITTED → APPROVED / REJECTED
+          ===================================================== */}
 
-          <div className={styles.actions}>
+      {canApproveReject && (
+        <>
+          {/* APPROVE */}
+          <section className={styles.section}>
+            <h2>Approve Order</h2>
+
+            <div className={styles.formGroup}>
+              <label>
+                Components
+              </label>
+
+              <select
+                value={approvalScope}
+                onChange={(e) =>
+                  setApprovalScope(e.target.value)
+                }
+                disabled={actionLoading}
+              >
+                <option value="">
+                  Select an option
+                </option>
+
+                <option value="AllComponents">
+                  All components
+                </option>
+
+                <option value="NotAllComponents">
+                  Not all components
+                </option>
+              </select>
+            </div>
+
+            {approvalScope === 'NotAllComponents' && (
+              <div className={styles.formGroup}>
+                <label>
+                  Explanation (optional)
+                </label>
+
+                <textarea
+                  placeholder="Explain which component(s) are not approved..."
+                  value={rejectNote}
+                  onChange={(e) =>
+                    setRejectNote(e.target.value)
+                  }
+                  disabled={actionLoading}
+                />
+              </div>
+            )}
+
             <button
               type="button"
               onClick={() =>
-                handleStatus('Approved')
+                handleStatus('Approved', {
+                  approvalScope,
+                  note: rejectNote || null,
+                })
               }
-              disabled={actionLoading}
+              disabled={
+                actionLoading || !approvalScope
+              }
               className={styles.approveBtn}
             >
               Approve
             </button>
+          </section>
 
-            <div className={styles.rejectRow}>
-              <input
-                type="text"
-                placeholder="Rejection reason (optional)"
-                value={rejectReason}
+          {/* REJECT */}
+          <section className={styles.section}>
+            <h2>Reject Order</h2>
+
+            <div className={styles.formGroup}>
+              <label>
+                Reason
+              </label>
+
+              <select
+                value={rejectionReason}
                 onChange={(e) =>
-                  setRejectReason(e.target.value)
-                }
-                className={styles.rejectInput}
-              />
-
-              <button
-                type="button"
-                onClick={() =>
-                  handleStatus(
-                    'Rejected',
-                    rejectReason
-                  )
+                  setRejectionReason(e.target.value)
                 }
                 disabled={actionLoading}
-                className={styles.rejectBtn}
               >
-                Reject
-              </button>
+                <option value="">
+                  Select a reason
+                </option>
+
+                <option value="UnavailableComponents">
+                  Unavailable Components
+                </option>
+
+                <option value="AlreadyLoaned">
+                  Already Loaned
+                </option>
+              </select>
             </div>
-          </div>
-        </section>
+
+            <div className={styles.formGroup}>
+              <label>
+                Explanation (optional)
+              </label>
+
+              <textarea
+                placeholder="Add an optional explanation..."
+                value={rejectNote}
+                onChange={(e) =>
+                  setRejectNote(e.target.value)
+                }
+                disabled={actionLoading}
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                handleStatus('Rejected', {
+                  rejectionReason,
+                  note: rejectNote || null,
+                })
+              }
+              disabled={
+                actionLoading || !rejectionReason
+              }
+              className={styles.rejectBtn}
+            >
+              Reject
+            </button>
+          </section>
+        </>
       )}
 
-      {/* APPROVED → TAKEN */}
+      {/* =====================================================
+          APPROVED → TAKEN
+          ===================================================== */}
+
       {canMarkTaken && (
         <section className={styles.section}>
-          <h2>Actions</h2>
+          <h2>Mark as Taken</h2>
 
-          <p>
-            The order has been approved. Mark it as
-            taken when the student receives the
-            components.
-          </p>
+          <div className={styles.formGroup}>
+            <label>
+              Remarks (optional)
+            </label>
+
+            <textarea
+              placeholder="Add optional remarks..."
+              value={takenNote}
+              onChange={(e) =>
+                setTakenNote(e.target.value)
+              }
+              disabled={actionLoading}
+            />
+          </div>
 
           <button
             type="button"
             onClick={() =>
-              handleStatus('Taken')
+              handleStatus('Taken', {
+                note: takenNote || null,
+              })
             }
             disabled={actionLoading}
             className={styles.doneBtn}
@@ -259,22 +395,78 @@ export default function OrderDetail() {
         </section>
       )}
 
-      {/* TAKEN → RETURNED */}
+      {/* =====================================================
+          TAKEN → RETURNED
+          ===================================================== */}
+
       {canMarkReturned && (
         <section className={styles.section}>
-          <h2>Actions</h2>
+          <h2>Mark as Returned</h2>
 
-          <p>
-            Mark the order as returned when the
-            student brings the components back.
-          </p>
+          <div className={styles.formGroup}>
+            <label>
+              Return condition
+            </label>
+
+            <select
+              value={returnCondition}
+              onChange={(e) =>
+                setReturnCondition(e.target.value)
+              }
+              disabled={actionLoading}
+            >
+              <option value="">
+                Select return condition
+              </option>
+
+              <option value="AllComponentsReturned">
+                All components returned
+              </option>
+
+              <option value="MissingComponents">
+                Missing components
+              </option>
+
+              <option value="DamagedComponents">
+                Damaged components
+              </option>
+            </select>
+          </div>
+
+          {(returnCondition === 'MissingComponents' ||
+            returnCondition === 'DamagedComponents') && (
+            <div className={styles.formGroup}>
+              <label>
+                Remarks (optional)
+              </label>
+
+              <textarea
+                placeholder={
+                  returnCondition ===
+                  'MissingComponents'
+                    ? 'Specify the missing component(s)...'
+                    : 'Describe the damaged component(s)...'
+                }
+                value={returnNote}
+                onChange={(e) =>
+                  setReturnNote(e.target.value)
+                }
+                disabled={actionLoading}
+              />
+            </div>
+          )}
 
           <button
             type="button"
             onClick={() =>
-              handleStatus('Returned')
+              handleStatus('Returned', {
+                returnCondition,
+                note: returnNote || null,
+              })
             }
-            disabled={actionLoading}
+            disabled={
+              actionLoading || !returnCondition
+            }
             className={styles.doneBtn}
           >
             Mark as Returned
@@ -283,4 +475,50 @@ export default function OrderDetail() {
       )}
     </div>
   );
+}
+
+/* ============================================================
+   Display helpers
+   ============================================================ */
+
+function formatApprovalScope(value) {
+  switch (value) {
+    case 'AllComponents':
+      return 'All components';
+
+    case 'NotAllComponents':
+      return 'Not all components';
+
+    default:
+      return value;
+  }
+}
+
+function formatRejectionReason(value) {
+  switch (value) {
+    case 'UnavailableComponents':
+      return 'Unavailable Components';
+
+    case 'AlreadyLoaned':
+      return 'Already Loaned';
+
+    default:
+      return value;
+  }
+}
+
+function formatReturnCondition(value) {
+  switch (value) {
+    case 'AllComponentsReturned':
+      return 'All components returned';
+
+    case 'MissingComponents':
+      return 'Missing components';
+
+    case 'DamagedComponents':
+      return 'Damaged components';
+
+    default:
+      return value;
+  }
 }

@@ -2,7 +2,9 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
 function joinApiUrl(path) {
   if (!API_BASE) return path;
-  return path.startsWith('/') ? `${API_BASE}${path}` : `${API_BASE}/${path}`;
+  return path.startsWith('/')
+    ? `${API_BASE}${path}`
+    : `${API_BASE}/${path}`;
 }
 
 function getToken() {
@@ -45,7 +47,9 @@ export async function api(url, options = {}) {
       msg = j.detail || j.message || j.title || text;
     } catch (_) {}
 
-    throw new Error(msg || `Request failed: ${res.status}`);
+    throw new Error(
+      msg || `Request failed: ${res.status}`
+    );
   }
 
   if (res.status === 204) return null;
@@ -63,11 +67,17 @@ export const auth = {
   register: (email, password, name) =>
     api('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({
+        email,
+        password,
+        name,
+      }),
     }),
 
   verifyEmail: (token) =>
-    api(`/api/auth/verify-email?token=${encodeURIComponent(token)}`),
+    api(
+      `/api/auth/verify-email?token=${encodeURIComponent(token)}`
+    ),
 
   forgotPassword: (email) =>
     api('/api/auth/forgot-password', {
@@ -89,7 +99,13 @@ export const auth = {
 
 export const orders = {
   list: (status) =>
-    api(`/api/orders${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+    api(
+      `/api/orders${
+        status
+          ? `?status=${encodeURIComponent(status)}`
+          : ''
+      }`
+    ),
 
   get: (id) =>
     api(`/api/orders/${id}`),
@@ -100,26 +116,12 @@ export const orders = {
       body: JSON.stringify(payload),
     }),
 
-  updateStatus: (id, status, reason = null) => {
-    const enumMap = {
-  Submitted: 0,
-  Approved: 1,
-  Rejected: 2,
-  Taken: 3,
-  Returned: 4,
-};
-
-    const statusValue =
-      typeof status === 'string'
-        ? (enumMap[status] ?? status)
-        : status;
-
-    return api(`/api/orders/${id}/status`, {
+  updateStatus: (id, status, data = {}) =>
+    api(`/api/orders/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({
-        status: statusValue,
-        reason,
+        status,
+        ...data,
       }),
-    });
-  },
+    }),
 };

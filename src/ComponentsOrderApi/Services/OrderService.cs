@@ -149,72 +149,133 @@ public class OrderService : IOrderService
         var fromStatus = order.Status;
         var toStatus = request.Status;
 
+        // Values that will be stored in the status history.
+        ApprovalScope? approvalScope = null;
+        RejectionReason? rejectionReason = null;
+        ReturnCondition? returnCondition = null;
+
+        // ---------------------------------------------------------
         // SUBMITTED → APPROVED
+        // ---------------------------------------------------------
+        if (fromStatus == OrderStatus.Submitted &&
+            toStatus == OrderStatus.Approved)
+        {
+            if (!request.ApprovalScope.HasValue)
+                throw new InvalidOperationException(
+                    "Approval scope is required.");
+
+            approvalScope = request.ApprovalScope.Value;
+
+            // Rejection information must not be supplied.
+            if (request.RejectionReason.HasValue ||
+                request.ReturnCondition.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "Invalid information for approval.");
+            }
+
+            order.RejectionReason = null;
+        }
+
+        // ---------------------------------------------------------
         // SUBMITTED → REJECTED
-        if (fromStatus == OrderStatus.Submitted)
+        // ---------------------------------------------------------
+        else if (fromStatus == OrderStatus.Submitted &&
+                 toStatus == OrderStatus.Rejected)
         {
-            if (toStatus != OrderStatus.Approved &&
-                toStatus != OrderStatus.Rejected)
+            if (!request.RejectionReason.HasValue)
+                throw new InvalidOperationException(
+                    "Rejection reason is required.");
+
+            rejectionReason = request.RejectionReason.Value;
+
+            // Approval/return information must not be supplied.
+            if (request.ApprovalScope.HasValue ||
+                request.ReturnCondition.HasValue)
             {
-                return null;
+                throw new InvalidOperationException(
+                    "Invalid information for rejection.");
             }
 
-            if (toStatus == OrderStatus.Rejected)
-            {
-                order.RejectionReason = request.Reason;
-            }
-            else
-            {
-                order.RejectionReason = null;
-            }
+            // Keep the existing rejection reason field
+            // compatible with the current application.
+            order.RejectionReason = request.Note;
         }
 
+        // ---------------------------------------------------------
         // APPROVED → TAKEN
-        else if (fromStatus == OrderStatus.Approved)
+        // ---------------------------------------------------------
+        else if (fromStatus == OrderStatus.Approved &&
+                 toStatus == OrderStatus.Taken)
         {
-            if (toStatus != OrderStatus.Taken)
-                return null;
+            // No special selection is required.
+            // Only an optional note is accepted.
+
+            if (request.ApprovalScope.HasValue ||
+                request.RejectionReason.HasValue ||
+                request.ReturnCondition.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "Invalid information for Taken status.");
+            }
 
             order.RejectionReason = null;
         }
 
+        // ---------------------------------------------------------
         // TAKEN → RETURNED
-        else if (fromStatus == OrderStatus.Taken)
+        // ---------------------------------------------------------
+        else if (fromStatus == OrderStatus.Taken &&
+                 toStatus == OrderStatus.Returned)
         {
-            if (toStatus != OrderStatus.Returned)
-                return null;
+            if (!request.ReturnCondition.HasValue)
+                throw new InvalidOperationException(
+                    "Return condition is required.");
+
+            returnCondition = request.ReturnCondition.Value;
+
+            if (request.ApprovalScope.HasValue ||
+                request.RejectionReason.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "Invalid information for Returned status.");
+            }
 
             order.RejectionReason = null;
         }
 
-        // REJECTED and RETURNED are final states.
+        // ---------------------------------------------------------
+        // REJECTED / RETURNED ARE FINAL
+        // ---------------------------------------------------------
         else if (fromStatus == OrderStatus.Rejected ||
                  fromStatus == OrderStatus.Returned)
         {
-            return null;
+            throw new InvalidOperationException(
+                $"Order with status {fromStatus} cannot be changed.");
         }
 
+        // ---------------------------------------------------------
+        // ANY OTHER TRANSITION IS INVALID
+        // ---------------------------------------------------------
         else
         {
-            return null;
+            throw new InvalidOperationException(
+                $"Invalid status transition from {fromStatus} to {toStatus}.");
         }
 
         order.Status = toStatus;
         order.UpdatedAt = DateTime.UtcNow;
         order.ProcessedByUserId = adminUserId;
 
-        var note =
-            toStatus == OrderStatus.Rejected &&
-            !string.IsNullOrWhiteSpace(request.Reason)
-                ? request.Reason
-                : null;
-
         await AddStatusHistoryAsync(
             order.Id,
             fromStatus,
             toStatus,
             adminUserId,
-            note,
+            approvalScope,
+            rejectionReason,
+            returnCondition,
+            request.Note,
             ct);
 
         await _db.SaveChangesAsync(ct);
@@ -231,6 +292,9 @@ public class OrderService : IOrderService
         OrderStatus fromStatus,
         OrderStatus toStatus,
         int? userId,
+        ApprovalScope? approvalScope,
+        RejectionReason? rejectionReason,
+        ReturnCondition? returnCondition,
         string? note,
         CancellationToken ct)
     {
@@ -242,6 +306,9 @@ public class OrderService : IOrderService
                 ToStatus = toStatus,
                 ChangedAt = DateTime.UtcNow,
                 ChangedByUserId = userId,
+                ApprovalScope = approvalScope,
+                RejectionReason = rejectionReason,
+                ReturnCondition = returnCondition,
                 Note = note
             });
 
@@ -266,13 +333,16 @@ public class OrderService : IOrderService
             .ToList(),
         o.StatusHistory
             .OrderBy(h => h.ChangedAt)
-            .Select(h => new OrderStatusHistoryDto(
-                h.Id,
-                h.FromStatus.ToString(),
-                h.ToStatus.ToString(),
-                h.ChangedAt,
-                h.ChangedByUser?.Name,
-                h.Note))
+.Select(h => new OrderStatusHistoryDto(
+    h.Id,
+    h.FromStatus.ToString(),
+    h.ToStatus.ToString(),
+    h.ChangedAt,
+    h.ChangedByUser?.Name,
+    h.ApprovalScope?.ToString(),
+    h.RejectionReason?.ToString(),
+    h.ReturnCondition?.ToString(),
+    h.Note))
             .ToList()
     );
 }
